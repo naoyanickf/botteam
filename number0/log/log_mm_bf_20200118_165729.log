@@ -1,5 +1,0 @@
-2020-01-18 16:57:30: POST https://api.bitflyer.jp/v1/me/sendchildorder 400 Bad Request {"status":-205,"error_message":"Margin amount is insufficient for this order.","data":null}
-2020-01-18 16:57:30: POST https://api.bitflyer.jp/v1/me/sendchildorder 400 Bad Request {"status":-205,"error_message":"Margin amount is insufficient for this order.","data":null}
-2020-01-18 16:57:31: POST https://api.bitflyer.jp/v1/me/sendchildorder 400 Bad Request {"status":-205,"error_message":"Margin amount is insufficient for this order.","data":null}
-2020-01-18 16:57:32: POST https://api.bitflyer.jp/v1/me/sendchildorder 400 Bad Request {"status":-205,"error_message":"Margin amount is insufficient for this order.","data":null}
-2020-01-18 16:57:32: POST https://api.bitflyer.jp/v1/me/sendchildorder 400 Bad Request {"status":-205,"error_message":"Margin amount is insufficient for this order.","data":null}
