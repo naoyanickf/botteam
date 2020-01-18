@@ -6,14 +6,16 @@ from datetime import datetime as dt, timedelta
 import functions
 
 # 設定 ------------------------------------------------------------------------------#
-API_KEY = '96wCZAuaiiCuCwz82ds8ym'
-API_SECRET = 'onNARBPBbcElLAr6Nd6WZ4moj5nz3UzADlvLekIH+64='
-LIMIT_TIME = 3 # seconds
+API_KEY = ''
+API_SECRET = ''
+LIMIT_TIME = 5 # seconds
+AMOUNT_MIN = 0.01 # 最小注文単位 BTC
 LOT = 0.01 # BTC
-SPREAD_DELTA = 5000 # 円
+SPREAD_DELTA = 200 # 円
 COIN = 'BTC'
 PAIR = 'FX_BTC_JPY'
 bitflyer = ccxt.bitflyer({'apiKey': API_KEY, 'secret': API_SECRET})
+MAX_TRADES_COUNT = 50
 # 設定 ------------------------------------------------------------------------------#
 
 # logging ---------------------------------------------------------------------------#
@@ -127,27 +129,46 @@ buy_order_info = None # 例：{'info': {'child_order_acceptance_id': 'JRF2020011
 sell_order_info = None # 例：{'info': {'child_order_acceptance_id': 'JRF20200118-084358-809988'}, 'id': 'JRF20200118-084358-809988'}
 buy_order_status = None
 sell_order_status = None
+buy_order_finished = False
+sell_order_finished = False
+
 buy_fiiled = 0
 sell_fiiled = 0
 remaining = 0
+
+trade_counts = 0
+initial_colla = get_colla()['collateral']
+last_colla = None
 # 変数 ------------------------------------------------------------------------------#
 
+logger.info('Initial collateral: ')
+logger.info(initial_colla)
+
 while True:
-  if order_available and buy_order_info == None and sell_order_info == None:
-    print('initial')
+  if order_available and buy_order_finished == False and sell_order_finished == False:
+    logger.info('normal term start!')
     mid_price = get_mid_price()
     buy_price, sell_price = mid_price - SPREAD_DELTA, mid_price + SPREAD_DELTA
     buy_order_info = limit('BUY', LOT, buy_price)
-    #sell_order_info = limit('SELL', LOT, sell_price)
+    sell_order_info = limit('SELL', LOT, sell_price)
     sashine_time = datetime.datetime.now()
     order_available = False
-  elif order_available and current_position == 'buy':
-    print('buy')
-  elif order_available and current_position == 'sell':
-    print('sell')
+  elif order_available and buy_order_finished == False:
+    mid_price = get_mid_price()
+    buy_price = mid_price - SPREAD_DELTA
+    buy_order_info = limit('BUY', LOT, buy_price)
+    sashine_time = datetime.datetime.now()
+    order_available = False
+  elif order_available and sell_order_finished == False:
+    mid_price = get_mid_price()
+    sell_price = mid_price + SPREAD_DELTA
+    sell_order_info = limit('SELL', LOT, sell_price)
+    sashine_time = datetime.datetime.now()
+    order_available = False
 
   now = datetime.datetime.now()
-  if (now - sashine_time).seconds > LIMIT_TIME:
+
+  if order_available == False and (now - sashine_time).seconds > LIMIT_TIME:
     # キャンセル処理を最初にやる
     if buy_order_info != None:
       cancel(buy_order_info['id'])
@@ -161,18 +182,37 @@ while True:
       buy_order_status = get_status(buy_order_info['id'])
       if buy_order_status != None:
         buy_fiiled = buy_order_status['filled']
+        if buy_fiiled > 0:
+          buy_order_finished = True
     if sell_order_info != None:
       sell_order_status = get_status(sell_order_info['id'])  
       if sell_order_status != None:
         sell_fiiled = sell_order_status['filled']
-
+        if sell_fiiled > 0:
+          sell_order_finished = True
+    
     # 初期化
     order_available = True
     buy_order_info = None
-    sell_order_info = None
-    buy_fiiled = 0
-    sell_filled = 0
+    sell_order_info = None 
+
+    if buy_order_finished and sell_order_finished:      
+      trade_counts += 1
+      logger.info(str(trade_counts) + " trades finished!")
+      buy_order_finished = False
+      sell_order_finished = False
+      buy_fiiled = 0
+      sell_filled = 0
+      time.sleep(1)
+      if trade_counts > MAX_TRADES_COUNT:
+        is_done = True        
 
   # 終了フラッグが立っている場合は終了する
   if is_done:
+    last_colla = get_colla()
+    logger.info("finished!")
+    logger.info("Initial:")
+    logger.info(initial_colla)
+    logger.info("Last:")
+    logger.info(last_colla)
     break
