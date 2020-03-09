@@ -6,16 +6,16 @@ from datetime import datetime as dt, timedelta
 import functions
 
 # 設定 ------------------------------------------------------------------------------#
-API_KEY = ''
-API_SECRET = ''
+API_KEY = '96wCZAuaiiCuCwz82ds8ym'
+API_SECRET = 'onNARBPBbcElLAr6Nd6WZ4moj5nz3UzADlvLekIH+64='
 LIMIT_TIME = 5 # seconds
-AMOUNT_MIN = 0.01 # 最小注文単位 BTC
-LOT = 0.01 # BTC
-SPREAD_DELTA = 200 # 円
+AMOUNT_MIN = 0.05 # 最小注文単位 BTC
+LOT = 0.05 # BTC
+SPREAD_DELTA = 249 # 円
 COIN = 'BTC'
 PAIR = 'FX_BTC_JPY'
 bitflyer = ccxt.bitflyer({'apiKey': API_KEY, 'secret': API_SECRET})
-MAX_TRADES_COUNT = 50
+MAX_TRADES_COUNT = 150
 # 設定 ------------------------------------------------------------------------------#
 
 # logging ---------------------------------------------------------------------------#
@@ -146,6 +146,7 @@ logger.info(initial_colla)
 
 while True:
   if order_available and buy_order_finished == False and sell_order_finished == False:
+    # TODO: bitflyerのAPIの状況が悪い場合は、10秒sleepして次のループへ回す
     logger.info('normal term start!')
     mid_price = get_mid_price()
     buy_price, sell_price = mid_price - SPREAD_DELTA, mid_price + SPREAD_DELTA
@@ -168,6 +169,9 @@ while True:
 
   now = datetime.datetime.now()
 
+  next 
+
+  # 
   if order_available == False and (now - sashine_time).seconds > LIMIT_TIME:
     # キャンセル処理を最初にやる
     if buy_order_info != None:
@@ -190,26 +194,35 @@ while True:
         sell_fiiled = sell_order_status['filled']
         if sell_fiiled > 0:
           sell_order_finished = True
+
+    # TODO: buy_filled, sell_filledが中途半端な数字である場合、次の注文で調整する必要がある
     
-    # 初期化
+    # 制限時間を超えた後の初期化
     order_available = True
     buy_order_info = None
     sell_order_info = None 
 
-    if buy_order_finished and sell_order_finished:      
+    # 一回の注文ループが終わったときの完全初期化
+    if buy_order_finished and sell_order_finished:
+      # TODO:ポジションと注文をチェックして完全にゼロであることを確認
+      # TODO:もし、ポジションや注文が残っていれば、注文はキャンセル。ポジションは成り行きの反対売買で消去
+
+      # トレード回数の記録 
       trade_counts += 1
       logger.info(str(trade_counts) + " trades finished!")
+
       buy_order_finished = False
       sell_order_finished = False
       buy_fiiled = 0
       sell_filled = 0
+
       time.sleep(1)
       if trade_counts > MAX_TRADES_COUNT:
         is_done = True        
 
   # 終了フラッグが立っている場合は終了する
   if is_done:
-    last_colla = get_colla()
+    last_colla = get_colla()['collateral']
     logger.info("finished!")
     logger.info("Initial:")
     logger.info(initial_colla)
